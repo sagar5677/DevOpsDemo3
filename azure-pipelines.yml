@@ -1,36 +1,29 @@
-# Maven
-# Build your Java project and run tests with Apache Maven.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/java
-
-trigger:
-- master
-
 pool:
-  vmImage: 'ubuntu-latest'
+  name: Hosted Ubuntu 1604
+  demands: maven
 
 steps:
-- task: Maven@3
+- task: Maven@1
+  displayName: 'Maven $(mavenPOMFile)'
   inputs:
-    mavenPomFile: 'app/pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.8'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
+    mavenPomFile: app/pom.xml
     testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
 
 - task: CopyFiles@2
-  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+  displayName: 'Copy File to: $(TargetFolder)'
   inputs:
-    SourceFolder: '$(system.defaultworkingdirectory)'
-    Contents: '**/*.jar'
+    SourceFolder: '$(Build.SourcesDirectory)'
+    Contents: |
+     **/*.war
+     **/*jar-with-dependencies.jar
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    flattenFolders: true
+
+- task: CopyFiles@2
+  displayName: 'Copy ARM templates'
+  inputs:
+    SourceFolder: ArmTemplates
     TargetFolder: '$(build.artifactstagingdirectory)'
-  condition: succeededOrFailed()
 
 - task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: drop'
-  inputs:
-    PathtoPublish: '$(build.artifactstagingdirectory)'
-  condition: succeededOrFailed()
+  displayName: 'Publish Artifacts: drop'
